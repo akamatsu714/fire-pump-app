@@ -2,45 +2,54 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ポンプ運用計算</title>
     <style>
         body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; margin: 0; }
         .card { background: #333; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
         h2 { color: #ff4d4d; margin-top: 0; font-size: 1.2rem; text-align: center; }
         label { display: block; margin-top: 15px; font-size: 1rem; }
-        input[type="range"] { width: 100%; height: 40px; cursor: pointer; }
-        .value-display { font-size: 1.8rem; font-weight: bold; color: #00d4ff; float: right; }
-        #result-box { text-align: center; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 20px; font-size: 1.2rem; transition: 0.3s; }
+        /* スライダーを大きくして操作性を向上 */
+        input[type="range"] { width: 100%; height: 50px; cursor: pointer; accent-color: #ff4d4d; }
+        .value-display { font-size: 2.2rem; font-weight: bold; color: #00d4ff; float: right; }
+        #result-box { text-align: center; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 20px; font-size: 1.3rem; transition: 0.3s; }
         .safe { background: #28a745; } 
         .warn-green { background: #8dc63f; color: black; }
         .warn-yellow { background: #ffc107; color: black; }
         .warn-orange { background: #fd7e14; color: white; }
         .danger { background: #dc3545; }
-        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #007bff; color: white; font-size: 1.1rem; margin-top: 20px; font-weight: bold; }
+        .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+        button { flex: 2; padding: 18px; border-radius: 10px; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .btn-save { background: #007bff; color: white; }
+        .btn-clear { flex: 1; background: #555; color: white; font-size: 0.8rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #222; }
-        th, td { border: 1px solid #444; padding: 10px; font-size: 0.8rem; text-align: center; }
+        th, td { border: 1px solid #444; padding: 12px; font-size: 0.9rem; text-align: center; }
         th { background: #444; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>🚒 消防ポンプ運用計算</h2>
-        <label>静水圧: <span class="value-display" id="ps-val">0.50</span><br><small>MPa</small></label>
-        <input type="range" id="ps" min="0.1" max="1.5" step="0.01" value="0.50" oninput="calc()">
-        <label>動水圧: <span class="value-display" id="pd-val">0.40</span><br><small>MPa</small></label>
-        <input type="range" id="pd" min="0.1" max="1.5" step="0.01" value="0.40" oninput="calc()">
+        
+        <label>静水圧: <span class="value-display" id="ps-val">0.5</span><br><small>MPa</small></label>
+        <input type="range" id="ps" min="0.1" max="0.8" step="0.1" value="0.5" oninput="calc()">
+        
+        <label>動水圧: <span class="value-display" id="pd-val">0.4</span><br><small>MPa</small></label>
+        <input type="range" id="pd" min="0.1" max="0.8" step="0.1" value="0.4" oninput="calc()">
         
         <div id="result-box" class="safe">
             低下率: <span id="rate">20.0</span>%<br>
             <span id="status">判定中...</span>
         </div>
         
-        <button onclick="saveLog()">活動記録を保存</button>
+        <div class="btn-group">
+            <button class="btn-save" onclick="saveLog()">記録を保存</button>
+            <button class="btn-clear" onclick="clearLog()">履歴削除</button>
+        </div>
     </div>
 
     <div class="card">
-        <h3>📋 履歴</h3>
+        <h3>📋 活動履歴</h3>
         <table id="log-table">
             <thead><tr><th>時刻</th><th>低下率</th><th>判定</th></tr></thead>
             <tbody></tbody>
@@ -48,20 +57,34 @@
     </div>
 
 <script>
+window.onload = function() {
+    const savedLogs = localStorage.getItem('pumpLogs');
+    if (savedLogs) {
+        document.querySelector('#log-table tbody').innerHTML = savedLogs;
+    }
+    calc();
+};
+
 function calc() {
-    const ps = parseFloat(document.getElementById('ps').value);
-    const pd = parseFloat(document.getElementById('pd').value);
-    document.getElementById('ps-val').innerText = ps.toFixed(2);
-    document.getElementById('pd-val').innerText = pd.toFixed(2);
+    let ps = parseFloat(document.getElementById('ps').value);
+    let pd = parseFloat(document.getElementById('pd').value);
+    
+    // 動水圧が静水圧を超えないように制御
+    if (pd > ps) {
+        pd = ps;
+        document.getElementById('pd').value = ps;
+    }
+
+    document.getElementById('ps-val').innerText = ps.toFixed(1);
+    document.getElementById('pd-val').innerText = pd.toFixed(1);
 
     const rate = ((ps - pd) / ps) * 100;
     const resBox = document.getElementById('result-box');
     const statusDisp = document.getElementById('status');
     const rateDisp = document.getElementById('rate');
 
-    rateDisp.innerText = rate.toFixed(1);
+    rateDisp.innerText = isNaN(rate) ? "0.0" : rate.toFixed(1);
 
-    // 新しい判定ロジック
     if (rate < 10) {
         resBox.className = 'safe';
         statusDisp.innerText = "あと3線以上可能";
@@ -84,12 +107,20 @@ function saveLog() {
     const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     const rate = document.getElementById('rate').innerText;
     const status = document.getElementById('status').innerText;
-    const table = document.getElementById('log-table').getElementsByTagName('tbody')[0];
-    const row = table.insertRow(0);
-    row.innerHTML = `<td>${time}</td><td>${rate}%</td><td>${status}</td>`;
+    const tableBody = document.querySelector('#log-table tbody');
+    
+    const rowHTML = `<tr><td>${time}</td><td>${rate}%</td><td>${status}</td></tr>`;
+    tableBody.insertAdjacentHTML('afterbegin', rowHTML);
+    localStorage.setItem('pumpLogs', tableBody.innerHTML);
 }
 
-// 初期計算
+function clearLog() {
+    if (confirm('履歴をすべて削除しますか？')) {
+        document.querySelector('#log-table tbody').innerHTML = '';
+        localStorage.removeItem('pumpLogs');
+    }
+}
+
 calc();
 </script>
 </body>
