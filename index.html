@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポンプ運用計算</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; margin: 0; }
+        .card { background: #333; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
+        h2 { color: #ff4d4d; margin-top: 0; font-size: 1.2rem; text-align: center; }
+        label { display: block; margin-top: 15px; font-size: 1rem; }
+        input[type="range"] { width: 100%; height: 40px; cursor: pointer; }
+        .value-display { font-size: 1.8rem; font-weight: bold; color: #00d4ff; float: right; }
+        #result-box { text-align: center; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 20px; font-size: 1.2rem; }
+        .safe { background: #28a745; } .warn { background: #ffc107; color: black; } .danger { background: #dc3545; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #007bff; color: white; font-size: 1.1rem; margin-top: 20px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #222; }
+        th, td { border: 1px solid #444; padding: 10px; font-size: 0.8rem; text-align: center; }
+        th { background: #444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🚒 消防ポンプ運用計算</h2>
+        <label>静水圧: <span class="value-display" id="ps-val">0.50</span><br><small>MPa</small></label>
+        <input type="range" id="ps" min="0.1" max="1.5" step="0.01" value="0.50" oninput="calc()">
+        <label>動水圧: <span class="value-display" id="pd-val">0.40</span><br><small>MPa</small></label>
+        <input type="range" id="pd" min="0.1" max="1.5" step="0.01" value="0.40" oninput="calc()">
+        <div id="result-box" class="safe">
+            低下率: <span id="rate">20.0</span>%<br>
+            <span id="status">判定中...</span>
+        </div>
+        <button onclick="saveLog()">活動記録を保存</button>
+    </div>
+    <div class="card">
+        <h3>📋 履歴</h3>
+        <table id="log-table">
+            <thead><tr><th>時刻</th><th>低下率</th><th>判定</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+<script>
+function calc() {
+    const ps = parseFloat(document.getElementById('ps').value);
+    const pd = parseFloat(document.getElementById('pd').value);
+    document.getElementById('ps-val').innerText = ps.toFixed(2);
+    document.getElementById('pd-val').innerText = pd.toFixed(2);
+    const rate = ((ps - pd) / ps) * 100;
+    const resBox = document.getElementById('result-box');
+    const statusDisp = document.getElementById('status');
+    document.getElementById('rate').innerText = rate.toFixed(1);
+    if (rate <= 10) { resBox.className = 'safe'; statusDisp.innerText = "あと3線以上可能"; }
+    else if (rate <= 15) { resBox.className = 'warn'; statusDisp.innerText = "あと2線可能"; }
+    else if (rate <= 25) { resBox.className = 'warn'; statusDisp.innerText = "あと1線可能"; }
+    else { resBox.className = 'danger'; statusDisp.innerText = "追加放水不可！"; }
+}
+function saveLog() {
+    const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const rate = document.getElementById('rate').innerText;
+    const status = document.getElementById('status').innerText;
+    const table = document.getElementById('log-table').getElementsByTagName('tbody')[0];
+    const row = table.insertRow(0);
+    row.innerHTML = `<td>${time}</td><td>${rate}%</td><td>${status}</td>`;
+}
+calc();
+</script>
+</body>
+</html>
